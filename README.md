@@ -12,17 +12,24 @@ Alurnya sama untuk semua tipe: **pertanyaan konfirmasi → storyboard → previe
 | [`venturo-ngobrol`](skills/venturo-ngobrol/SKILL.md) | 3. Talking-head | Rekaman bicara ke kamera + caption, kartu yang menyala per kata, slide & B-roll |
 | [`venturo-animasi-2d`](skills/venturo-animasi-2d/SKILL.md) | 4. Animasi 2D | Adegan ilustrasi flat Venturo yang benar-benar bergerak |
 
-## Instal
+## Instal (satu baris)
 
 ```bash
-git clone <url repo ini> venturo-content-skills
-cd venturo-content-skills
-./install.sh claude     # ~/.claude/skills
-./install.sh codex      # ~/.codex/skills
-./install.sh all        # semua target + ~/.agents/skills
-./install.sh x --dir /path/ke/folder/skills
+curl -fsSL https://raw.githubusercontent.com/arigunawanj/venturo-content-skills/main/install.sh | bash
 ```
-Kelima folder dipasang berdampingan (skill konten membaca `../venturo-brand`). Restart agent setelah instal.
+
+Variasi:
+
+```bash
+# + pasang kebutuhan Python & Chromium sekaligus
+curl -fsSL https://raw.githubusercontent.com/arigunawanj/venturo-content-skills/main/install.sh | bash -s -- --deps
+# untuk semua agent (Claude Code, Codex, ~/.agents)
+curl -fsSL https://raw.githubusercontent.com/arigunawanj/venturo-content-skills/main/install.sh | bash -s -- all --deps
+```
+
+Dari folder repo: `./install.sh [claude|codex|agents|all] [--deps] [--dir <folder>]`. Jalankan ulang perintah yang sama untuk update. Kelima folder dipasang berdampingan (skill konten membaca `../venturo-brand`). Restart agent setelah instal.
+
+> Kalau repo dijadikan private, perintah `curl` di atas tidak bisa mengambil file. Pakai: `gh repo clone arigunawanj/venturo-content-skills && ./venturo-content-skills/install.sh --deps` (akun harus sudah diundang sebagai collaborator).
 
 ## Kebutuhan
 
