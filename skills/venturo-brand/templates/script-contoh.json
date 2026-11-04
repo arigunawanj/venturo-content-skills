@@ -1,0 +1,21 @@
+{
+  "title": "Owner Jadi Sistem Berjalan",
+  "slug": "owner-sistem-berjalan",
+  "w": 1080,
+  "h": 1920,
+  "voice": "gilang",
+  "ttsExtra": { "instructions": "santai, hangat, natural seperti orang Indonesia ngobrol, artikulasi jelas" },
+  "bgm": "synth",
+  "bgmVolume": 0.26,
+  "sfxVolume": 1.0,
+  "mediaFps": 30,
+  "_catatan": "kind mg = slide motion (vo = narasi TTS). kind ft = footage: src, ss, to (detik), text = transkrip yang sudah dikoreksi (untuk caption & timing), mute, caption, zoom [awal, akhir], focusY 0..1, grade redup|hangat. sfx: [[kata atau detik, pop|tap|thump|chime|swipe, gain?]]. Contoh segmen footage ada di _contoh_footage.",
+  "_contoh_footage": { "id": "s1", "kind": "ft", "name": "Talking head", "src": "footage/IMG_0001.MOV", "ss": 5.5, "to": 8.8, "zoom": [1.0, 1.06], "text": "Kalimat yang benar-benar diucapkan.", "caption": true },
+  "segments": [
+    { "id": "hook", "kind": "mg", "name": "Mitos", "vo": "Masih banyak owner yang yakin begini. Padahal, *benarkah?*", "sfx": [["benarkah", "pop"]] },
+    { "id": "chat", "kind": "mg", "name": "HP owner", "vo": "Coba lihat HP owner yang lagi libur. Semua pertanyaan tetap lari ke dia.", "sfx": [["semua", "pop", 0.07]] },
+    { "id": "banding", "kind": "mg", "name": "Tanpa vs dengan", "vo": "Bedanya kerasa di kerjaan sehari-hari. Tim nggak perlu nunggu balasan owner lagi." },
+    { "id": "mulai", "kind": "mg", "name": "Mulai kecil", "vo": "Mulainya nggak harus besar. Cukup satu alur dulu: order, stok, atau laporan harian.", "sfx": [["order", "tap"], ["stok", "tap"], ["laporan", "tap"]] },
+    { "id": "cta", "kind": "mg", "name": "CTA", "vo": "Bingung mulai dari mana? Komen *SISTEM*, tim Venturo bantu cek gratis.", "sfx": [["gratis", "chime"]] }
+  ]
+}
