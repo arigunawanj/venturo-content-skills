@@ -7,9 +7,10 @@ venturo.py — pipeline konten video Venturo (preview tanpa render → render se
   tts       <proyek> [--force]         VO TTS per segmen motion (cache di build/tts)
   cut       <proyek> [--force]         potong & reframe footage → preview/media/<id>.mp4 (+ wav ucapan)
   timeline  <proyek>                   hitung durasi & timing kata → build/timeline.json
-  audio     <proyek>                   mix VO + suara footage + SFX + backsound (ducking) → preview/media/audio.mp3
+  audio     <proyek>                   mix VO + suara footage + SFX + backsound (ducking) → build/audio-*.wav
+  track     <proyek>                   gabung footage + audio jadi SATU video (sinkron bibir) → preview/media/track.mp4
   build     <proyek>                   preview/index.html (player, tinggal play)
-  all       <proyek>                   tts → cut → timeline → audio → build
+  all       <proyek>                   tts → cut → timeline → audio → track → build
   shots     <proyek> --at 1,4.5,9      contact sheet frame → build/shots.png
   render    <proyek> [--fps 60]        render MP4 final + versi tanpa musik + VO saja → renders/
 
@@ -137,7 +138,7 @@ def cmd_cut(a):
         if not src.exists(): die(f"footage {src} tidak ada")
         dur = round(s["to"] - s["ss"], 3); z0, z1 = s.get("zoom", [1.0, 1.04]); fy = s.get("focusY", 0.4)
         key = sha(src.stat().st_size, s["ss"], s["to"], z0, z1, fy, s.get("grade"), W, H, fps)
-        out, stamp = d / "preview/media" / f"{s['id']}.mp4", d / "build/ft" / f"{s['id']}.key"
+        out, stamp = d / "build/ft" / f"{s['id']}.mp4", d / "build/ft" / f"{s['id']}.key"
         if out.exists() and stamp.exists() and stamp.read_text() == key and not a.force: print(f"  · {s['id']} (cache)"); continue
         n = int(round(dur * fps)); BW, BH = int(W * 1.5) // 2 * 2, int(H * 1.5) // 2 * 2
         grade = {"redup": ",eq=saturation=0.75:contrast=1.06:brightness=-0.03", "hangat": ",eq=saturation=1.05:contrast=1.03"}.get(s.get("grade"), "")
@@ -297,8 +298,31 @@ def cmd_audio(a):
     for k, m in mixes.items():
         wr(d / f"build/audio-{k}.wav", m)
         run(f"ffmpeg -v error -y -i '{d}/build/audio-{k}.wav' -af loudnorm=I=-14:TP=-1.5:LRA=11 -ar {SR} '{d}/build/audio-{k}-norm.wav'")
-    run(f"ffmpeg -v error -y -i '{d}/build/audio-full-norm.wav' -c:a libmp3lame -b:a 160k '{d}/preview/media/audio.mp3'")
-    print("✓ audio: preview/media/audio.mp3 (+ versi tanpa musik & VO saja di build/)")
+    stale = d / "preview/media/audio.mp3"
+    if stale.exists(): stale.unlink()
+    print("✓ audio: build/audio-full-norm.wav (+ versi tanpa musik & VO saja) → digabung ke trek oleh perintah track")
+
+
+# ------------------------------------------------------------------ trek utama (footage + audio dalam SATU file → sinkron bibir pasti)
+def cmd_track(a):
+    d = Path(a.dir); tl = json.loads((d / "build/timeline.json").read_text()); sc = load(d)
+    W, H, fps = tl["w"], tl["h"], sc.get("mediaFps", 30); parts = []
+    for s in tl["segs"]:
+        f = d / "build/ft" / f"{s['id']}.mp4"
+        if s["kind"] == "ft" and f.exists(): parts.append(f"-i '{f}'")
+        else: parts.append(f"-f lavfi -t {s['dur']} -i color=c=white:s={W}x{H}:r={fps}")
+    n = len(parts); chain = "".join(f"[{i}:v]fps={fps},scale={W}:{H},setsar=1,trim=duration={s['dur']},setpts=PTS-STARTPTS[v{i}];" for i, s in enumerate(tl["segs"]))
+    chain += "".join(f"[v{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=0[v]"
+    aud = d / "build/audio-full-norm.wav"
+    if not aud.exists(): die("audio belum dibuat (jalankan audio)")
+    hd = d / "build/track-hd.mp4"
+    run(f"ffmpeg -v error -y {' '.join(parts)} -i '{aud}' -filter_complex \"{chain}\" -map '[v]' -map {n}:a -c:v libx264 -preset medium -crf 18 "
+        f"-pix_fmt yuv420p -g {fps} -c:a aac -b:a 192k -shortest -movflags +faststart '{hd}'")
+    pw, ph = (W * 2 // 3) // 2 * 2, (H * 2 // 3) // 2 * 2
+    run(f"ffmpeg -v error -y -i '{hd}' -vf scale={pw}:{ph} -c:v libx264 -preset medium -crf 27 -g {fps} -c:a aac -b:a 128k -movflags +faststart '{d}/preview/media/track.mp4'")
+    for old in (d / "preview/media").glob("*.mp4"):          # sisa versi lama (video per segmen) dibuang
+        if old.stem in {x["id"] for x in tl["segs"]}: old.unlink()
+    print(f"✓ trek: preview/media/track.mp4 ({(d / 'preview/media/track.mp4').stat().st_size / 1e6:.1f} MB) + build/track-hd.mp4 untuk render")
 
 
 # ------------------------------------------------------------------ build preview
@@ -312,13 +336,11 @@ def cmd_build(a):
     css = (d / "style.css").read_text() if (d / "style.css").exists() else ""
     html = tpl.replace("/*TITLE*/", tl["title"]).replace("/*DATA*/", json.dumps(tl, ensure_ascii=False)).replace("/*SCENES*/", scenes).replace("/*CSS*/", css)
     (pv / "index.html").write_text(html)
-    miss = [s["id"] for s in tl["segs"] if s["kind"] == "ft" and not (pv / "media" / f"{s['id']}.mp4").exists()]
-    if miss: print("  ! footage belum dipotong:", miss)
-    if not (pv / "media/audio.mp3").exists(): print("  ! audio belum dibuat (jalankan audio)")
+    if not (pv / "media/track.mp4").exists(): print("  ! trek belum dibuat (jalankan track)")
     print(f"✓ preview: {pv / 'index.html'}  (buka di browser, atau publish folder preview/ sebagai halaman)")
 
 def cmd_all(a):
-    for f in (cmd_tts, cmd_cut, cmd_timeline, cmd_audio, cmd_build): f(a)
+    for f in (cmd_tts, cmd_cut, cmd_timeline, cmd_audio, cmd_track, cmd_build): f(a)
 
 
 # ------------------------------------------------------------------ shots & render (Playwright)
@@ -376,7 +398,7 @@ def cmd_render(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sp = ap.add_subparsers(dest="cmd", required=True)
-    for c in ["init", "check-tts", "tts", "cut", "timeline", "audio", "build", "all", "shots", "render"]:
+    for c in ["init", "check-tts", "tts", "cut", "timeline", "audio", "track", "build", "all", "shots", "render"]:
         q = sp.add_parser(c); q.add_argument("dir")
         if c in ("tts", "cut", "all"): q.add_argument("--force", action="store_true")
         if c == "init": q.add_argument("--wide", action="store_true", help="16:9 1920x1080")
@@ -384,7 +406,7 @@ def main():
         if c == "render": q.add_argument("--fps", type=int, default=60); q.add_argument("--name", default="")
     a = ap.parse_args()
     if a.cmd == "all" and not hasattr(a, "force"): a.force = False
-    {"init": cmd_init, "check-tts": cmd_check_tts, "tts": cmd_tts, "cut": cmd_cut, "timeline": cmd_timeline, "audio": cmd_audio,
+    {"init": cmd_init, "check-tts": cmd_check_tts, "tts": cmd_tts, "cut": cmd_cut, "timeline": cmd_timeline, "audio": cmd_audio, "track": cmd_track,
      "build": cmd_build, "all": cmd_all, "shots": cmd_shots, "render": cmd_render}[a.cmd](a)
 
 if __name__ == "__main__":

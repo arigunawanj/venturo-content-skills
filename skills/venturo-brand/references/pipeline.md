@@ -53,14 +53,15 @@ Pakai `faster-whisper` (word timestamps) untuk menemukan bagian yang diucapkan, 
 |---|---|
 | `init <p> [--wide]` | buat proyek dari contoh |
 | `check-tts <p>` | uji API TTS (`TTS_API_KEY`, `TTS_URL` opsional; default server Venturo) |
-| `all <p>` | tts → cut → timeline → audio → build |
+| `all <p>` | tts → cut → timeline → audio → track → build |
+| `track <p>` | gabung semua footage + audio jadi satu video (`preview/media/track.mp4` 720p, `build/track-hd.mp4` untuk render) supaya gerak bibir & suara pasti sinkron dan preview tidak tersendat |
 | `build <p>` | rakit ulang preview saja (setelah edit scenes.js / style.css) |
 | `timeline <p>` + `audio <p>` + `build <p>` | setelah ubah urutan/VO/SFX |
 | `shots <p> [--at 1,4.5]` | contact sheet `build/shots.png` |
 | `render <p> [--fps 60] [--name x]` | MP4 final + 2 versi audio alternatif |
 
 ## Review tanpa render
-`preview/` berisi `index.html` + `media/` (audio mp3, footage mp4, bg, logo). Buka lokal di browser, atau publish foldernya sebagai halaman web/artifact; penonton tinggal tekan play dan bisa lompat per scene.
+`preview/` berisi `index.html` + `media/` (track.mp4 = footage + seluruh audio dalam satu file, klip B-roll, bg, logo). Trek ini jadi jam player, jadi gambar dan suara tidak bisa lepas sinkron. Buka lokal di browser, atau publish foldernya sebagai halaman web/artifact; penonton tinggal tekan play dan bisa lompat per scene.
 
 ## Kebutuhan
 python3, ffmpeg/ffprobe, `pip install numpy scipy playwright pillow faster-whisper`, `python3 -m playwright install chromium`. Font Montserrat dimuat dari Google Fonts (butuh internet saat preview/render).

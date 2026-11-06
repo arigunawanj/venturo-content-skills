@@ -44,6 +44,7 @@ body.render .stagewrap { border-radius: 0; box-shadow: none; }
 .slide.mg::before { content: ''; position: absolute; inset: 0; background: url(media/bg.jpg) center/cover no-repeat; opacity: .85;
   -webkit-mask-image: radial-gradient(ellipse 75% 45% at 100% 0%, #000 0%, rgba(0,0,0,.5) 45%, transparent 100%), radial-gradient(ellipse 75% 45% at 0% 100%, #000 0%, rgba(0,0,0,.5) 45%, transparent 100%);
           mask-image: radial-gradient(ellipse 75% 45% at 100% 0%, #000 0%, rgba(0,0,0,.5) 45%, transparent 100%), radial-gradient(ellipse 75% 45% at 0% 100%, #000 0%, rgba(0,0,0,.5) 45%, transparent 100%); }
+#track { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #fff; }
 .slide video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #ddd; }
 .slide video.bv { position: static; display: block; width: 100%; height: 100%; border-radius: 18px; }
 .bcard { padding: 14px; } .bcard .src { font: italic 500 22px var(--font); color: var(--muted); margin: 12px 6px 2px; letter-spacing: 1px; }
@@ -110,7 +111,6 @@ body.render .stagewrap { border-radius: 0; box-shadow: none; }
     <div class="note">Preview langsung di browser, belum dirender jadi video. Klik nama scene untuk lompat.</div>
   </div>
 </div>
-<audio id="audio" src="media/audio.mp3" preload="auto"></audio>
 
 <script>
 const DATA = /*DATA*/;
@@ -150,7 +150,8 @@ function wEnd(id, q, nth = 0) { let n = 0; for (const w of byId[id].words || [])
 const LOGO = `<div class="abs logo" data-r="logo"><img src="media/logo.png" alt="Venturo Expert Programmers"></div>`;
 const LBL = txt => `<div class="abs lbl" data-r="lbl"><i></i>${txt}</div>`;
 const CNT = txt => `<div class="abs counter" data-r="cnt">${txt}</div>`;
-const VIDEO = s => `<video data-r="v" muted playsinline preload="auto" src="media/${s.id}.mp4"></video>`;
+/** rekaman orang bicara sudah ada di trek utama (#track, lapisan paling bawah) → slide footage cukup transparan */
+const VIDEO = s => ``;
 /** B-roll di dalam kartu (id dari "broll" di script.json). off = detik awal di klip */
 const BROLL = (id, off = 0, cls = '') => `<video class="bv ${cls}" data-off="${off}" muted playsinline preload="auto" src="media/${id}.mp4"></video>`;
 const words = (txt, cls = '') => txt.split(' ').map(w => `<span class="w ${cls}" data-r="hw[]">${w}</span>`).join(' ');
@@ -207,16 +208,21 @@ const SC = {};
 /* ---------- mesin player ---------- */
 const stage = $('#stage');
 stage.style.width = W + 'px'; stage.style.height = H + 'px'; if (W > H) stage.classList.add('wide');
+/* trek utama: semua footage + seluruh audio dalam satu file → gambar & suara pasti sinkron, dan jadi jam player */
+const track = document.createElement('video');
+track.id = 'track'; track.playsInline = true; track.preload = 'auto'; track.src = RENDER ? '../build/track-hd.mp4' : 'media/track.mp4';
+if (RENDER) track.muted = true;
+stage.appendChild(track);
 SEG.forEach((s, i) => {
   const el = document.createElement('section'); el.className = 'slide ' + (s.kind === 'mg' || s.slide ? 'mg' : 'ft'); stage.appendChild(el);
   const def = SC[s.id] || (s.kind === 'ft' ? footScene() : { build: e => e.innerHTML = LOGO + `<div class="abs h1">${s.id}</div>`, update: (r, t) => head(r, t) });
   s.def = def; def.build(el, s); s.el = el; s.r = refs(el); s.vids = [...el.querySelectorAll('video')];
   s.swipe = s.swipe ?? (i > 0 && (s.kind === 'mg' || SEG[i - 1].kind === 'mg'));   // geser ala carousel
 });
-const audio = $('#audio'), scrub = $('#scrub'), playBtn = $('#play'), big = $('#bigplay');
+const scrub = $('#scrub'), playBtn = $('#play'), big = $('#bigplay');
 scrub.max = TOTAL;
-let playing = false, clockT = 0, t0Wall = 0;
-const now = () => playing ? (audio.readyState >= 2 && !audio.paused ? audio.currentTime : clockT + (performance.now() - t0Wall) / 1000) : clockT;
+let playing = false, clockT = 0;
+const now = () => playing ? track.currentTime : clockT;
 function segAt(t) { let i = 0; SEG.forEach((s, k) => { if (t >= s.t0) i = k; }); return i; }
 function syncVideo(s, lt, live) {
   for (const v of s.vids) {
@@ -245,11 +251,15 @@ function render(t) {
 function loop() { if (!playing) return; const t = now(); if (t >= TOTAL - .02) { pause(); clockT = TOTAL; render(TOTAL); return; } render(t); requestAnimationFrame(loop); }
 function play() {
   if (clockT >= TOTAL - .05) clockT = 0;
-  playing = true; t0Wall = performance.now(); audio.currentTime = clockT; audio.play().catch(() => {});
+  track.currentTime = clockT; playing = true;
+  track.play().catch(() => { playing = false; playBtn.textContent = '▶'; });
   playBtn.textContent = '❚❚'; big.hidden = true; requestAnimationFrame(loop);
 }
-function pause() { clockT = now(); playing = false; audio.pause(); playBtn.textContent = '▶'; render(clockT); }
-function seek(t) { clockT = cl(t, 0, TOTAL); if (playing) { audio.currentTime = clockT; t0Wall = performance.now(); } render(clockT); }
+function pause() { clockT = now(); playing = false; track.pause(); playBtn.textContent = '▶'; render(clockT); }
+function seek(t) { clockT = cl(t, 0, TOTAL); track.currentTime = clockT; render(clockT); }
+track.addEventListener('waiting', () => playBtn.textContent = '…');
+track.addEventListener('playing', () => { if (playing) playBtn.textContent = '❚❚'; });
+track.addEventListener('ended', () => { if (playing) pause(); });
 playBtn.onclick = () => playing ? pause() : play();
 big.onclick = play;
 scrub.oninput = () => seek(+scrub.value);
@@ -267,10 +277,10 @@ function fit() {
 if (RENDER) document.body.classList.add('render');
 addEventListener('resize', fit); fit();
 /* dipakai scripts/venturo.py (shots & render): render frame t lalu tunggu video selesai seek */
-window.__render = render;
+window.__render = t => { render(t); track.currentTime = Math.min(t, TOTAL - .02); };
 window.__renderAsync = async t => {
-  render(t);
-  const vids = SEG.filter(s => s.el.style.display === 'block').flatMap(s => s.vids);
+  render(t); track.currentTime = Math.min(t, TOTAL - .02);
+  const vids = [track, ...SEG.filter(s => s.el.style.display === 'block').flatMap(s => s.vids)];
   await Promise.all(vids.map(v => (v.seeking || v.readyState < 2) ? new Promise(res => { const d = () => { v.removeEventListener('seeked', d); v.removeEventListener('loadeddata', d); res(); }; v.addEventListener('seeked', d); v.addEventListener('loadeddata', d); setTimeout(res, 3000); }) : null));
   if (document.fonts) await document.fonts.ready;
   return true;
