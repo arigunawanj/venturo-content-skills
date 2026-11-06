@@ -27,19 +27,26 @@
     { "id": "s1", "kind": "ft", "name": "Talking head", "src": "footage/IMG_1.MOV", "ss": 5.5, "to": 8.8,
       "text": "Transkrip yang sudah dikoreksi", "caption": true, "zoom": [1.0, 1.06], "focusY": 0.4 },
     { "id": "broll", "kind": "ft", "src": "footage/IMG_2.MOV", "ss": 4.6, "to": 6.4, "mute": true, "grade": "redup", "caption": false },
-    { "id": "jeda", "kind": "mg", "dur": 2.5 }
-  ]
+    { "id": "jeda", "kind": "mg", "dur": 2.5 },
+    { "id": "b", "kind": "ft", "slide": true, "src": "footage/IMG_1.MOV", "ss": 9, "to": 14, "text": "…" }
+  ],
+  "broll": [ { "id": "br_hp", "src": "footage/stock/klip.mp4", "ss": 3, "to": 9.5, "w": 920, "h": 518, "crop": "x:y:w:h (opsional)" } ]
 }
 ```
 - `mg` = slide motion (durasi = VO + pre + post, atau `dur`). `ft` = footage (durasi = `to - ss`), direframe otomatis ke rasio proyek dengan push-in `zoom`.
 - `sfx`: `[kata atau detik_lokal, "pop|tap|thump|chime|swipe", gain?]`. Swipe di transisi slide sudah otomatis.
 - `swipe: false` pada segmen untuk memaksa cut tanpa geser.
+- `slide: true` pada segmen `ft`: suara rekaman tetap jalan, tapi layar menampilkan slide (biasanya `POLA.brollSlide` dengan B-roll di kartu). Caption otomatis mati di slide.
+- `broll`: klip stok/tambahan tanpa suara, dipotong ke ukuran kartu (default 920×518). Dipakai lewat `BROLL(id)` / `POLA.brollSlide({broll: id})`.
+
+## B-roll stok gratis
+Pakai sumber berlisensi bebas komersial: **Mixkit** (`https://assets.mixkit.co/videos/<id>/<id>-720.mp4`, ID dari halaman kategori), **Pexels** (`https://www.pexels.com/download/video/<id>/`). Jangan ambil dari Pinterest/Google Images (hak cipta tidak jelas) dan jangan pakai foto tokoh publik. Klip 720p horizontal tampilkan di kartu, jangan di-crop penuh 9:16 (buram). Klip HP layar hijau bisa ditempeli layar buatan sendiri (chroma key dibatasi area layar saja).
 
 ## Transkrip footage
 Pakai `faster-whisper` (word timestamps) untuk menemukan bagian yang diucapkan, lalu **koreksi manual** dan tulis ke `text`. `ss/to` dipilih dari energi audio (awal & akhir ucapan nyata, buang jeda). Timing per kata dihitung ulang otomatis dari jeda nyata di rekaman.
 
 ## scenes.js
-`SC.<id> = POLA.<pola>({...})` atau objek `{ build(el, s), update(r, t, s) }` sendiri. `t` = detik lokal segmen. Waktu `at` di pola boleh berupa kata ucapan ('stok') atau detik. Helper: `enter, tf, P, draw, wd, wEnd, LOGO, LBL, CNT, VIDEO, ICON, words`. Segmen `ft` tanpa entri = video + logo + caption otomatis.
+`SC.<id> = POLA.<pola>({...})` atau objek `{ build(el, s), update(r, t, s) }` sendiri. `t` = detik lokal segmen. Waktu `at` di pola boleh berupa kata ucapan ('stok') atau detik. Helper: `enter, tf, P, draw, wd, wEnd, LOGO, LBL, CNT, VIDEO, BROLL, ICON, words`. Pola footage: `kartuUcapan` (caption mati, kartu menyala per kata), `kartuAngka` (angka menghitung + caption), `chipFootage` (label/sumber + caption), `kartuBroll`; pola slide B-roll: `brollSlide`. Segmen `ft` tanpa entri = video + logo + caption otomatis.
 
 ## Perintah
 | Perintah | Fungsi |

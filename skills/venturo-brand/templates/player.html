@@ -45,6 +45,10 @@ body.render .stagewrap { border-radius: 0; box-shadow: none; }
   -webkit-mask-image: radial-gradient(ellipse 75% 45% at 100% 0%, #000 0%, rgba(0,0,0,.5) 45%, transparent 100%), radial-gradient(ellipse 75% 45% at 0% 100%, #000 0%, rgba(0,0,0,.5) 45%, transparent 100%);
           mask-image: radial-gradient(ellipse 75% 45% at 100% 0%, #000 0%, rgba(0,0,0,.5) 45%, transparent 100%), radial-gradient(ellipse 75% 45% at 0% 100%, #000 0%, rgba(0,0,0,.5) 45%, transparent 100%); }
 .slide video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #ddd; }
+.slide video.bv { position: static; display: block; width: 100%; height: 100%; border-radius: 18px; }
+.bcard { padding: 14px; } .bcard .src { font: italic 500 22px var(--font); color: var(--muted); margin: 12px 6px 2px; letter-spacing: 1px; }
+.chipf { padding: 12px 26px; border-radius: 30px; background: rgba(255,255,255,.94); font: 700 28px var(--font); color: var(--ink); box-shadow: 0 8px 24px -10px rgba(30,42,46,.35); white-space: nowrap; display: inline-flex; gap: 12px; align-items: center; }
+.chipf i { width: 16px; height: 16px; border-radius: 4px; background: var(--teal); display: block; }
 .abs { position: absolute; }
 .logo { left: 80px; top: 232px; width: 300px; } .logo img { width: 100%; display: block; }
 .counter { left: 846px; top: 246px; padding: 8px 26px; border: 2.5px solid #D3DCDF; border-radius: 40px; font: 600 30px var(--font); color: var(--ink); background: rgba(255,255,255,.85); }
@@ -147,6 +151,8 @@ const LOGO = `<div class="abs logo" data-r="logo"><img src="media/logo.png" alt=
 const LBL = txt => `<div class="abs lbl" data-r="lbl"><i></i>${txt}</div>`;
 const CNT = txt => `<div class="abs counter" data-r="cnt">${txt}</div>`;
 const VIDEO = s => `<video data-r="v" muted playsinline preload="auto" src="media/${s.id}.mp4"></video>`;
+/** B-roll di dalam kartu (id dari "broll" di script.json). off = detik awal di klip */
+const BROLL = (id, off = 0, cls = '') => `<video class="bv ${cls}" data-off="${off}" muted playsinline preload="auto" src="media/${id}.mp4"></video>`;
 const words = (txt, cls = '') => txt.split(' ').map(w => `<span class="w ${cls}" data-r="hw[]">${w}</span>`).join(' ');
 function refs(root) { const r = {}; root.querySelectorAll('[data-r]').forEach(el => { const k = el.dataset.r; if (k.endsWith('[]')) (r[k.slice(0, -2)] ||= []).push(el); else r[k] = el; }); return r; }
 /** header slide: logo, label, counter masuk berurutan */
@@ -202,9 +208,9 @@ const SC = {};
 const stage = $('#stage');
 stage.style.width = W + 'px'; stage.style.height = H + 'px'; if (W > H) stage.classList.add('wide');
 SEG.forEach((s, i) => {
-  const el = document.createElement('section'); el.className = 'slide ' + s.kind; stage.appendChild(el);
+  const el = document.createElement('section'); el.className = 'slide ' + (s.kind === 'mg' || s.slide ? 'mg' : 'ft'); stage.appendChild(el);
   const def = SC[s.id] || (s.kind === 'ft' ? footScene() : { build: e => e.innerHTML = LOGO + `<div class="abs h1">${s.id}</div>`, update: (r, t) => head(r, t) });
-  s.def = def; def.build(el, s); s.el = el; s.r = refs(el); s.v = s.r.v || null;
+  s.def = def; def.build(el, s); s.el = el; s.r = refs(el); s.vids = [...el.querySelectorAll('video')];
   s.swipe = s.swipe ?? (i > 0 && (s.kind === 'mg' || SEG[i - 1].kind === 'mg'));   // geser ala carousel
 });
 const audio = $('#audio'), scrub = $('#scrub'), playBtn = $('#play'), big = $('#bigplay');
@@ -213,10 +219,12 @@ let playing = false, clockT = 0, t0Wall = 0;
 const now = () => playing ? (audio.readyState >= 2 && !audio.paused ? audio.currentTime : clockT + (performance.now() - t0Wall) / 1000) : clockT;
 function segAt(t) { let i = 0; SEG.forEach((s, k) => { if (t >= s.t0) i = k; }); return i; }
 function syncVideo(s, lt, live) {
-  if (!s.v) return;
-  const tgt = cl(lt, 0, s.dur - .04);
-  if (live) { if (s.v.paused) s.v.play().catch(() => {}); if (Math.abs(s.v.currentTime - tgt) > .15) s.v.currentTime = tgt; }
-  else { if (!s.v.paused) s.v.pause(); if (RENDER || Math.abs(s.v.currentTime - tgt) > .03) s.v.currentTime = tgt; }
+  for (const v of s.vids) {
+    const lim = (isFinite(v.duration) && v.duration > 0 ? v.duration : s.dur) - .04;
+    const tgt = cl(lt + (+v.dataset.off || 0), 0, lim);
+    if (live) { if (v.paused) v.play().catch(() => {}); if (Math.abs(v.currentTime - tgt) > .15) v.currentTime = tgt; }
+    else { if (!v.paused) v.pause(); if (RENDER || Math.abs(v.currentTime - tgt) > .03) v.currentTime = tgt; }
+  }
 }
 function render(t) {
   t = cl(t, 0, TOTAL); const i = segAt(t), s = SEG[i], lt = t - s.t0;
@@ -224,7 +232,7 @@ function render(t) {
   SEG.forEach((x, k) => {
     const on = k === i || (k === i - 1 && sw < 1);
     x.el.style.display = on ? 'block' : 'none';
-    if (!on) { if (x.v && !x.v.paused) x.v.pause(); return; }
+    if (!on) { x.vids.forEach(v => { if (!v.paused) v.pause(); }); return; }
     const xlt = t - x.t0;
     x.el.style.transform = k === i ? `translateX(${(1 - sw) * W}px)` : `translateX(${-sw * W}px)`;
     x.def.update(x.r, Math.min(xlt, x.dur), x);
@@ -262,7 +270,7 @@ addEventListener('resize', fit); fit();
 window.__render = render;
 window.__renderAsync = async t => {
   render(t);
-  const vids = SEG.filter(s => s.v && s.el.style.display === 'block').map(s => s.v);
+  const vids = SEG.filter(s => s.el.style.display === 'block').flatMap(s => s.vids);
   await Promise.all(vids.map(v => (v.seeking || v.readyState < 2) ? new Promise(res => { const d = () => { v.removeEventListener('seeked', d); v.removeEventListener('loadeddata', d); res(); }; v.addEventListener('seeked', d); v.addEventListener('loadeddata', d); setTimeout(res, 3000); }) : null));
   if (document.fonts) await document.fonts.ready;
   return true;

@@ -129,3 +129,40 @@ POLA.kartuBroll = o => ({
     if (o.hitung) { const [a, b, pre = ''] = o.hitung; r.n.textContent = pre + Math.round(lerp(a, b, P(t, .3, s.dur - .2, 'io'))); }
   },
 });
+
+/* ---------- pola B-ROLL & overlay footage ---------- */
+/** SLIDE + KARTU B-ROLL: headline + video stok dalam kartu + pill/sumber. Dipakai juga untuk segmen ft "slide": true
+    (suara rekaman tetap jalan, layar menampilkan slide ini). broll = id di "broll" script.json. */
+POLA.brollSlide = o => ({
+  build: (el, s) => { s.caption = false; el.innerHTML = LOGO + LBL(o.label) + (o.counter ? CNT(o.counter) : '') + judul(o) + `
+    <div class="abs card bcard" data-r="bc" style="left:${o.kiri ?? 80}px;top:${o.top || 680}px;width:${o.lebar || 920}px">
+      <div style="height:${o.tinggi || 518}px">${BROLL(o.broll, o.off || 0)}</div>${o.sumber ? `<div class="src">${o.sumber}</div>` : ''}</div>` +
+    (o.pills || []).map((p, i) => `<div class="abs pill ${['t', 'g', 'l'][i % 3]}" data-r="p[]" style="left:${p.x ?? 80 + i * 60}px;top:${p.y ?? (o.top || 680) + (o.tinggi || 518) + 70 + i * 0}px;font-size:${p.size || 40}px">${p.t}</div>`).join(''); },
+  update(r, t, s) {
+    head(r, t); judulIn(r, t, s, o);
+    enter(r.bc, t, at(s, o.kartuAt, .3), { from: 'up', d: 70, r: o.miring ?? -1 });
+    (o.pills || []).forEach((p, i) => enter(r.p[i], t, at(s, p.at, 1.2 + i * .5), { from: 'pop', dur: .4, r: p.r ?? [-4, 3, -2][i % 3] }));
+  },
+});
+/** KARTU ANGKA di atas footage orang bicara (caption tetap jalan): angka menghitung naik + baris tambahan. */
+POLA.kartuAngka = o => ({
+  build: (el, s) => el.innerHTML = VIDEO(s) + (o.logo === false ? '' : LOGO) + `<div class="abs cap" data-r="cap"></div>
+    <div class="abs card" data-r="c" style="left:${o.kiri ?? 80}px;top:${o.top || 330}px;width:${o.lebar || 470}px;padding:24px 32px 26px">
+      <div class="caps">${o.label}</div><div data-r="n" style="font:900 ${o.size || 130}px/1 var(--font);letter-spacing:-4px;color:var(--teal);margin-top:6px">0</div>
+      ${(o.baris || []).map(b => `<div data-r="b[]" style="margin-top:12px"><span class="pill ${b.warna || 't'}" style="font-size:30px;padding:10px 24px;display:inline-block">${b.t}</span></div>`).join('')}</div>`,
+  update(r, t, s) {
+    enter(r.logo, t, .05, { from: 'up', d: 20, dur: .4 }); caption(r.cap, s, t);
+    const a0 = at(s, o.at, .4); enter(r.c, t, a0 - .2, { from: 'up', d: 40, r: -1.5 });
+    r.n.textContent = (o.awalan || '') + Math.round(lerp(o.angka[0], o.angka[1], P(t, a0, a0 + (o.durHitung || .9), 'out'))) + (o.akhiran || '');
+    (o.baris || []).forEach((b, i) => enter(r.b[i], t, at(s, b.at, a0 + 1 + i * .5), { from: 'pop', dur: .4, r: -2 }));
+  },
+});
+/** CHIP di atas footage (label topik, sumber, catatan kecil) — caption tetap jalan. chips: [{t, at, y}] */
+POLA.chipFootage = o => ({
+  build: (el, s) => el.innerHTML = VIDEO(s) + (o.logo === false ? '' : LOGO) + `<div class="abs cap" data-r="cap"></div>` +
+    o.chips.map((c, i) => `<div class="abs chipf" data-r="ch[]" style="left:${c.x ?? 80}px;top:${c.y ?? 340 + i * 80}px">${c.ikon === false ? '' : '<i></i>'}${c.t}</div>`).join(''),
+  update(r, t, s) {
+    enter(r.logo, t, .05, { from: 'up', d: 20, dur: .4 }); caption(r.cap, s, t);
+    o.chips.forEach((c, i) => enter(r.ch[i], t, at(s, c.at, .3 + i * .3), { from: 'left', d: 40, r: c.r ?? 0 }));
+  },
+});

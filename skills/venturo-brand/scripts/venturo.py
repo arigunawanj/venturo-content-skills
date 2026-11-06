@@ -148,6 +148,18 @@ def cmd_cut(a):
             run(f"ffmpeg -v error -y -ss {s['ss']} -t {dur} -i '{src}' -vn -af \"highpass=f=80,loudnorm=I=-16:TP=-2:LRA=7,"
                 f"afade=t=in:d=0.02,afade=t=out:st={dur - 0.04:.3f}:d=0.04\" -ar {SR} -ac 2 '{d}/build/ft/{s['id']}.wav'")
         stamp.write_text(key); print(f"  ▶ {s['id']} {dur:.2f}s")
+    # B-roll untuk kartu (tanpa suara): dipotong & di-crop ke ukuran kartu
+    for b in sc.get("broll", []):
+        src = d / b["src"]
+        if not src.exists(): die(f"B-roll {src} tidak ada")
+        bw, bh = b.get("w", 920), b.get("h", 518); dur = round(b.get("to", b.get("ss", 0) + 8) - b.get("ss", 0), 3)
+        key = sha(src.stat().st_size, b.get("ss", 0), dur, bw, bh, b.get("crop"), fps)
+        out, stamp = d / "preview/media" / f"{b['id']}.mp4", d / "build/ft" / f"{b['id']}.key"
+        if out.exists() and stamp.exists() and stamp.read_text() == key and not a.force: print(f"  · {b['id']} (cache)"); continue
+        crop = f"crop={b['crop']}," if b.get("crop") else ""
+        vf = f"{crop}scale={bw}:{bh}:force_original_aspect_ratio=increase:flags=lanczos,crop={bw}:{bh},fps={fps},format=yuv420p"
+        run(f"ffmpeg -v error -y -stream_loop -1 -ss {b.get('ss', 0)} -i '{src}' -t {dur} -vf \"{vf}\" -an -c:v libx264 -preset medium -crf 21 -g {fps} -movflags +faststart '{out}'")
+        stamp.write_text(key); print(f"  ▶ B-roll {b['id']} {dur:.2f}s")
     print("✓ footage siap")
 
 
@@ -170,7 +182,8 @@ def cmd_timeline(a):
             ws = time_words(words_of(s["text"]), dur, wav if wav.exists() else None) if s.get("text") else []
             x.update(dur=dur, words=ws)
         x["t0"] = round(t, 3); t += x["dur"]; segs.append(x)
-    for i, x in enumerate(segs): x["swipe"] = x.get("swipe", i > 0 and (x["kind"] == "mg" or segs[i - 1]["kind"] == "mg"))
+    look = lambda x: "mg" if x["kind"] == "mg" or x.get("slide") else "ft"   # footage bersuara tapi tampil sebagai slide = "mg"
+    for i, x in enumerate(segs): x["swipe"] = x.get("swipe", i > 0 and (look(x) == "mg" or look(segs[i - 1]) == "mg"))
     tl = {"title": sc.get("title", "Venturo"), "w": sc.get("w", 1080), "h": sc.get("h", 1920), "total": round(t, 3), "segs": segs}
     (d / "build/timeline.json").write_text(json.dumps(tl, indent=1, ensure_ascii=False))
     print(f"✓ timeline {len(segs)} segmen, total {t:.2f}s")
