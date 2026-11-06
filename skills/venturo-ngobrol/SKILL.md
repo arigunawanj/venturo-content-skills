@@ -30,7 +30,7 @@ description: "Konten talking-head Venturo: rekaman orang bicara ke kamera + capt
 - Tidak boleh ada elemen yang mengulang ucapan (mis. tombol "Follow" saat ia bilang "follow"). Teks layar hanya menambah: terjemahan istilah, angka, daftar, perbandingan.
 - Jump-cut antar potongan footage boleh (tanpa transisi); perpindahan footage ↔ slide = geser carousel (otomatis).
 - Push-in ringan per potongan (`zoom: [1.0, 1.06]`, variasikan) supaya tidak statis. `focusY` menjaga wajah tetap di sepertiga atas.
-- **Campur footage + teks, bukan motion grafik saja**: selang-seling wajah (caption + kartu angka/chip) dengan slide B-roll (`slide: true` + `POLA.brollSlide`) yang tetap memakai suara asli. Pola ini dipakai di konten "Update keamanan Android Nov 2026".
+- **Campur footage + teks, bukan motion grafik saja**: selang-seling wajah (caption + kartu angka/chip) dengan B-roll **full 9:16** (`slide: true` + `POLA.brollFull`, teks kotak putih di atas footage) yang tetap memakai suara asli. B-roll tanpa wajah orang (tangan, layar, benda). Pola ini dipakai di konten "Update keamanan Android Nov 2026".
 - B-roll stok: Mixkit/Pexels (lihat `references/pipeline.md`), tampil di kartu. Berita/klaim teknis wajib diverifikasi ke sumber resmi; tampilkan sumber kecil di kartu/chip.
 - Ucapan asli dinormalisasi otomatis; musik turun saat bicara.
 

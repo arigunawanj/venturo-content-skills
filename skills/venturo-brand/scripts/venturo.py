@@ -155,13 +155,19 @@ def cmd_cut(a):
         src = d / b["src"]
         if not src.exists(): die(f"B-roll {src} tidak ada")
         bw, bh = b.get("w", 920), b.get("h", 518); dur = round(b.get("to", b.get("ss", 0) + 8) - b.get("ss", 0), 3)
-        key = sha(src.stat().st_size, b.get("ss", 0), dur, bw, bh, b.get("crop"), fps)
+        key = sha(src.stat().st_size, b.get("ss", 0), dur, bw, bh, b.get("crop"), fps, b.get("focusX"), b.get("focusY"))
         out, stamp = d / "preview/media" / f"{b['id']}.mp4", d / "build/ft" / f"{b['id']}.key"
-        if out.exists() and stamp.exists() and stamp.read_text() == key and not a.force: print(f"  · {b['id']} (cache)"); continue
+        if (out.exists() or out.with_suffix(".jpg").exists()) and stamp.exists() and stamp.read_text() == key and not a.force: print(f"  · {b['id']} (cache)"); continue
         crop = f"crop={b['crop']}," if b.get("crop") else ""
-        vf = f"{crop}scale={bw}:{bh}:force_original_aspect_ratio=increase:flags=lanczos,crop={bw}:{bh},fps={fps},format=yuv420p"
-        run(f"ffmpeg -v error -y -stream_loop -1 -ss {b.get('ss', 0)} -i '{src}' -t {dur} -vf \"{vf}\" -an -c:v libx264 -preset medium -crf 21 -g {fps} -movflags +faststart '{out}'")
-        stamp.write_text(key); print(f"  ▶ B-roll {b['id']} {dur:.2f}s")
+        fx, fy = b.get("focusX", 0.5), b.get("focusY", 0.5)       # titik fokus saat dipotong ke rasio tujuan
+        fit = f"scale={bw}:{bh}:force_original_aspect_ratio=increase:flags=lanczos,crop={bw}:{bh}:(iw-{bw})*{fx}:(ih-{bh})*{fy}"
+        if src.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):   # gambar → jpg ukuran tujuan (gerak kamera di player)
+            out = d / "preview/media" / f"{b['id']}.jpg"
+            run(f"ffmpeg -v error -y -i '{src}' -vf \"{crop}{fit}\" -q:v 3 '{out}'")
+        else:
+            vf = f"{crop}{fit},fps={fps},format=yuv420p"
+            run(f"ffmpeg -v error -y -stream_loop -1 -ss {b.get('ss', 0)} -i '{src}' -t {dur} -vf \"{vf}\" -an -c:v libx264 -preset medium -crf 22 -g {fps} -movflags +faststart '{out}'")
+        stamp.write_text(key); print(f"  ▶ B-roll {b['id']}")
     print("✓ footage siap")
 
 

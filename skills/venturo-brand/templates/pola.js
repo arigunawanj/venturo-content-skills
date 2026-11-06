@@ -194,3 +194,29 @@ POLA.penutup = o => ({
     r.end.querySelector('img').style.transform = `scale(${lerp(.94, 1, P(t, e0, s.dur, 'out'))})`;
   },
 });
+
+/** B-ROLL FULL 9:16 (gaya referensi Venturo): video/gambar memenuhi layar, teks dalam kotak putih di atasnya.
+    media = id di "broll" (jpg → gambar dengan gerak kamera pelan, mp4 → video). Pakai di segmen ft "slide": true (suara rekaman tetap jalan)
+    atau segmen mg. Hindari footage dengan wajah orang kecuali diminta. */
+POLA.brollFull = o => ({
+  build: (el, s) => { s.caption = false;
+    const media = o.gambar ? `<img data-r="img" src="media/${o.media}.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:${o.asal || '50% 50%'}">`
+                           : `<div style="position:absolute;inset:0">${BROLL(o.media, o.off || 0).replace('class="bv', 'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" class="')}</div>`;
+    el.innerHTML = media + `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,30,35,${o.gelapAtas ?? .35}) 0%,rgba(15,30,35,0) 38%,rgba(15,30,35,0) 70%,rgba(15,30,35,${o.gelapBawah ?? .25}) 100%)"></div>
+      <div class="abs" data-r="logo" style="left:70px;top:222px;padding:12px 22px;border-radius:20px;background:rgba(255,255,255,.95)"><img src="media/logo.png" style="width:230px;display:block" alt="Venturo"></div>
+      <div class="abs chipf" data-r="lbl" style="left:70px;top:350px"><i></i><span style="font-style:italic;font-weight:600;letter-spacing:3px;text-transform:uppercase;font-size:24px">${o.label}</span></div>
+      <div class="abs" style="left:70px;top:430px;width:940px;font:800 84px/1.32 var(--font);letter-spacing:-2px">
+        <span data-r="h1" style="background:#fff;color:var(--ink);padding:2px 22px;border-radius:14px;box-decoration-break:clone;-webkit-box-decoration-break:clone">${o.h1}</span>
+        ${o.h1b ? `<br><span data-r="h1b" style="background:#fff;color:var(--teal);padding:2px 22px;border-radius:14px;box-decoration-break:clone;-webkit-box-decoration-break:clone;display:inline-block;margin-top:10px">${o.h1b}</span>` : ''}</div>` +
+      (o.pills || []).map((p, i) => `<div class="abs pill ${['t', 'g', 'l'][i % 3]}" data-r="p[]" style="left:${p.x ?? 70}px;top:${p.y ?? 1180 + i * 110}px;font-size:${p.size || 44}px">${p.t}</div>`).join('') +
+      (o.sumber ? `<div class="abs chipf" data-r="src" style="left:70px;top:${o.sumberY || 1440}px;font-size:22px;font-weight:600;padding:8px 18px">${o.sumber}</div>` : '') +
+      (o.extra || ''); },
+  update(r, t, s) {
+    enter(r.logo, t, .05, { from: 'up', d: 20, dur: .4 }); enter(r.lbl, t, .15, { from: 'left', d: 40 });
+    enter(r.h1, t, at(s, o.h1At, .25), { from: 'up', d: 40 }); enter(r.h1b, t, at(s, o.h2At, .55), { from: 'up', d: 40 });
+    if (r.img) r.img.style.transform = `scale(${lerp(o.zoom?.[0] ?? 1.0, o.zoom?.[1] ?? 1.1, P(t, 0, s.dur, 'lin'))})`;
+    (o.pills || []).forEach((p, i) => enter(r.p[i], t, at(s, p.at, 1.2 + i * .5), { from: 'pop', dur: .4, r: p.r ?? [-4, 3, -2][i % 3] }));
+    enter(r.src, t, at(s, o.sumberAt, .8), { from: 'up', d: 16, dur: .4 });
+    if (o.extraUpdate) o.extraUpdate(r, t, s);
+  },
+});
