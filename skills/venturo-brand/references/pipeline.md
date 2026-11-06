@@ -20,7 +20,7 @@
   "voice": "gilang",                    // nama voice server TTS; bisa per segmen
   "ttsExtra": { "instructions": "santai, hangat ..." },
   "bgm": "synth",                       // "synth" | "nama-file.mp3" (di sound/ atau $BACKSOUND_DIR) | null
-  "bgmVolume": 0.26, "sfxVolume": 1.0, "mediaFps": 30,
+  "bgmVolume": 0.26, "sfxVolume": 1.0, "mediaFps": 60,   // 60 = standar konten Venturo; jangan turunkan
   "segments": [
     { "id": "hook", "kind": "mg", "name": "Hook", "vo": "Narasi TTS, *kata* penekanan.",
       "pre": 0.3, "post": 0.35, "sfx": [["kata", "pop"]] },

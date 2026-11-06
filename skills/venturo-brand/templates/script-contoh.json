@@ -8,7 +8,7 @@
   "bgm": "synth",
   "bgmVolume": 0.26,
   "sfxVolume": 1.0,
-  "mediaFps": 30,
+  "mediaFps": 60,
   "_catatan": "kind mg = slide motion (vo = narasi TTS). kind ft = footage: src, ss, to (detik), text = transkrip yang sudah dikoreksi (untuk caption & timing), mute, caption, zoom [awal, akhir], focusY 0..1, grade redup|hangat. sfx: [[kata atau detik, pop|tap|thump|chime|swipe, gain?]]. Contoh segmen footage ada di _contoh_footage.",
   "_contoh_footage": { "id": "s1", "kind": "ft", "name": "Talking head", "src": "footage/IMG_0001.MOV", "ss": 5.5, "to": 8.8, "zoom": [1.0, 1.06], "text": "Kalimat yang benar-benar diucapkan.", "caption": true },
   "segments": [

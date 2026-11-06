@@ -166,3 +166,31 @@ POLA.chipFootage = o => ({
     o.chips.forEach((c, i) => enter(r.ch[i], t, at(s, c.at, .3 + i * .3), { from: 'left', d: 40, r: c.r ?? 0 }));
   },
 });
+
+/** PENUTUP halus: kolom komentar mengetik keyword → balasan ramah dari Venturo → semua memudar ke kartu logo di tengah.
+    Beri segmen "post" ±1.8 dtk di script.json supaya kartu logo & fade musik sempat terlihat. */
+POLA.penutup = o => ({
+  build: el => el.innerHTML = LOGO + LBL(o.label || 'Konsultasi gratis') + judul(o) + `
+    <div class="abs card" data-r="cb" style="left:80px;top:${o.top || 760}px;width:920px;height:140px;padding:0 24px 0 32px;display:flex;align-items:center;gap:24px;border-radius:80px">
+      <div style="width:80px;height:80px;border-radius:50%;background:#E3F1F3;flex:none"></div>
+      <div data-r="ty" style="flex:1;font:800 62px var(--font);color:var(--ink);letter-spacing:2px;white-space:nowrap"></div>
+      <div data-r="sd" style="width:100px;height:100px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;flex:none">${ICON.send.replace('<svg', '<svg style="width:46px;height:46px;fill:#fff"')}</div></div>
+    <div class="abs card" data-r="rp" style="left:${o.balasKiri ?? 200}px;top:${(o.top || 760) + 190}px;width:${o.balasLebar || 800}px;padding:24px 30px;border-radius:28px 28px 28px 8px">
+      <div style="font:800 30px var(--font);color:var(--teal);letter-spacing:.5px">Venturo <span style="font:500 24px var(--font);color:var(--muted)">· membalas</span></div>
+      <div style="font:600 40px/1.3 var(--font);color:var(--ink);margin-top:6px">${o.balasan}</div></div>
+    <div class="abs slide mg" data-r="end" style="left:0;top:0;width:${W}px;height:${H}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px">
+      <img src="media/logo.png" style="width:${o.logoLebar || 620}px;position:relative" alt="Venturo">
+      ${o.endTeks ? `<div class="caps" style="font-size:30px;position:relative">${o.endTeks}</div>` : ''}</div>`,
+  update(r, t, s) {
+    head(r, t); judulIn(r, t, s, o);
+    enter(r.cb, t, .3, { from: 'up', d: 50 });
+    const k0 = at(s, o.ketikAt, .9), k1 = typeof o.ketikAt === 'string' ? wEnd(s.id, o.ketikAt) : k0 + .6;
+    const n = Math.floor(o.keyword.length * P(t, k0, k1 + .05) + 1e-6), car = Math.floor(t * 2.5) % 2 ? '' : '<span style="display:inline-block;width:5px;height:58px;background:var(--teal);vertical-align:-8px;margin-left:6px"></span>';
+    r.ty.innerHTML = n ? o.keyword.slice(0, n) + car : `<span style="font:500 38px var(--font);color:#A8B4B8;letter-spacing:0">${o.placeholder || 'Tulis komentar…'}</span>`;
+    const ks = k1 + .2; r.sd.style.transform = `scale(${t > ks ? lerp(.82, 1, P(t, ks, ks + .3, 'back')) : 1})`;
+    enter(r.rp, t, at(s, o.balasAt, ks + .45), { from: 'up', d: 30, dur: .5, r: -.8 });
+    const e0 = o.endAt ?? s.dur - 1.7;                                   // kartu logo: muncul memudar, logo membesar pelan
+    const ke = P(t, e0, e0 + .6, 'io'); r.end.style.opacity = ke; r.end.style.display = ke > 0 ? 'flex' : 'none';
+    r.end.querySelector('img').style.transform = `scale(${lerp(.94, 1, P(t, e0, s.dur, 'out'))})`;
+  },
+});

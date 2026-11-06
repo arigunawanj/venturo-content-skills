@@ -130,7 +130,7 @@ def cmd_tts(a):
 
 # ------------------------------------------------------------------ footage
 def cmd_cut(a):
-    d = Path(a.dir); sc = load(d); W, H = sc.get("w", 1080), sc.get("h", 1920); fps = sc.get("mediaFps", 30)
+    d = Path(a.dir); sc = load(d); W, H = sc.get("w", 1080), sc.get("h", 1920); fps = sc.get("mediaFps", 60)
     (d / "build/ft").mkdir(parents=True, exist_ok=True); (d / "preview/media").mkdir(parents=True, exist_ok=True)
     for s in sc["segments"]:
         if s.get("kind") != "ft": continue
@@ -307,7 +307,7 @@ def cmd_audio(a):
 # ------------------------------------------------------------------ trek utama (footage + audio dalam SATU file → sinkron bibir pasti)
 def cmd_track(a):
     d = Path(a.dir); tl = json.loads((d / "build/timeline.json").read_text()); sc = load(d)
-    W, H, fps = tl["w"], tl["h"], sc.get("mediaFps", 30); parts = []
+    W, H, fps = tl["w"], tl["h"], sc.get("mediaFps", 60); parts = []
     for s in tl["segs"]:
         f = d / "build/ft" / f"{s['id']}.mp4"
         if s["kind"] == "ft" and f.exists(): parts.append(f"-i '{f}'")
