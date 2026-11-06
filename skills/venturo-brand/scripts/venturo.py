@@ -142,7 +142,8 @@ def cmd_cut(a):
         if out.exists() and stamp.exists() and stamp.read_text() == key and not a.force: print(f"  · {s['id']} (cache)"); continue
         n = int(round(dur * fps)); BW, BH = int(W * 1.5) // 2 * 2, int(H * 1.5) // 2 * 2
         grade = {"redup": ",eq=saturation=0.75:contrast=1.06:brightness=-0.03", "hangat": ",eq=saturation=1.05:contrast=1.03"}.get(s.get("grade"), "")
-        vf = (f"scale={BW}:{BH}:force_original_aspect_ratio=increase:flags=lanczos,crop={BW}:{BH},"
+        # fps dulu: zoompan menghasilkan 1 frame per frame input, jadi sumber 60fps harus diturunkan dulu (kalau tidak, video jadi slow motion)
+        vf = (f"fps={fps},scale={BW}:{BH}:force_original_aspect_ratio=increase:flags=lanczos,crop={BW}:{BH},"
               f"zoompan=z='{z0}+({z1}-{z0})*on/{n}':x='iw/2-(iw/zoom/2)':y='ih*{fy}-(ih/zoom*{fy})':d=1:s={W}x{H}:fps={fps}{grade},format=yuv420p")
         run(f"ffmpeg -v error -y -ss {s['ss']} -t {dur} -i '{src}' -vf \"{vf}\" -an -c:v libx264 -preset medium -crf 21 -g {fps} -movflags +faststart '{out}'")
         if not s.get("mute"):
